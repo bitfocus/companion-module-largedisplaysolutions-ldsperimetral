@@ -8,7 +8,7 @@
   "manufacturer": "Large Display Solutions",
   "products": ["LDSperimetral v1.58.1"],
   "keywords": ["perimeter", "lds", "largedisplaysolutions", "playlist", "sequence"],
-  "version": "0.9.0-beta",
+  "version": "0.9.1",
   "license": "MIT",
   "repository": "git+https://github.com/bitfocus/companion-module-largedisplaysolutions-ldsperimetral.git",
   "bugs": "https://github.com/bitfocus/companion-module-largedisplaysolutions-ldsperimetral/issues",
