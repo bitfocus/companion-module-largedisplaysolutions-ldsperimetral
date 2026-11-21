@@ -10,6 +10,7 @@ import { getActions } from './actions.js'
 import { getVariableDefinitions } from './variables.js'
 import { getFeedbacks } from './feedbacks.js'
 import { getPresets } from './presets.js'
+import { UpgradeScripts } from './upgrades.js'
 
 interface ApiResponse<T = unknown> {
   status: number
@@ -48,9 +49,12 @@ class LDSperimetralInstance extends InstanceBase<ModuleConfig> {
   public config!: ModuleConfig
   private pollInterval?: NodeJS.Timeout
   private timeInterval?: NodeJS.Timeout
+  private lastStatus?: InstanceStatus
 
   private playlists: PlaylistInfo[] = []
   private overlays: SequenceInfo[] = []
+  private lastPlaylistIds = ''
+  private lastOverlayIds = ''
 
   public getPlaylistChoices() {
     return this.playlists.map((p) => ({ id: p.name, label: `${p.name} (${p.sequence_count} seq)` }))
@@ -66,15 +70,13 @@ class LDSperimetralInstance extends InstanceBase<ModuleConfig> {
 
     this.setVariableDefinitions(getVariableDefinitions())
     this.setFeedbackDefinitions(getFeedbacks(this))
+    this.updateActionsAndPresets(true)
 
-    // Load everything immediately on connection
     await this.refreshLists()
     await this.pollState()
-    this.setActionDefinitions(getActions(this))
-    this.setPresetDefinitions(getPresets(this))
+    this.updateActionsAndPresets()
 
     this.startPolling()
-    this.updateStatus(InstanceStatus.Ok)
     this.log('info', `LDSperimetral v1.58.1 ready → ${config.host}:${config.port}`)
   }
 
@@ -85,15 +87,23 @@ class LDSperimetralInstance extends InstanceBase<ModuleConfig> {
 
   public async configUpdated(config: ModuleConfig): Promise<void> {
     this.config = config
+    this.updateStatus(InstanceStatus.Connecting)
+    this.updateActionsAndPresets(true)
     await this.refreshLists()
     await this.pollState()
-    this.setActionDefinitions(getActions(this))
-    this.setPresetDefinitions(getPresets(this))
+    this.updateActionsAndPresets()
     this.startPolling()
   }
 
   public getConfigFields(): SomeCompanionConfigField[] {
     return getConfigFields()
+  }
+
+  private setConnectionStatus(ok: boolean, message?: string) {
+    const next = ok ? InstanceStatus.Ok : InstanceStatus.ConnectionFailure
+    if (next === this.lastStatus) return
+    this.lastStatus = next
+    this.updateStatus(next, message)
   }
 
   private startPolling() {
@@ -106,18 +116,18 @@ class LDSperimetralInstance extends InstanceBase<ModuleConfig> {
     this.pollInterval = setInterval(async () => {
       await this.pollState()
       await this.refreshLists()
-      this.setActionDefinitions(getActions(this))
-      this.setPresetDefinitions(getPresets(this))
+      this.updateActionsAndPresets()
     }, intervalMs)
 
     if (this.config.fastTimeUpdate) {
       this.timeInterval = setInterval(async () => {
-        await this.pollState()
+        await this.pollReproductionState()
       }, 1000)
     }
   }
 
   public async refreshAfterCommand() {
+    await new Promise((r) => setTimeout(r, 500))
     await this.pollReproductionState()
   }
 
@@ -143,10 +153,17 @@ class LDSperimetralInstance extends InstanceBase<ModuleConfig> {
             elapsed_ms: s.current_sequence_elapsed_time || '0',
             total_ms: s.current_sequence_total_time || '0',
           })
+          this.checkFeedbacks('is_playing', 'is_paused')
+          this.setConnectionStatus(true)
+        } else {
+          this.setConnectionStatus(false, 'Invalid response from LDSperimetral')
         }
+      } else {
+        this.setConnectionStatus(false, 'No reply from LDSperimetral')
       }
     } catch (e) {
       this.log('debug', `pollReproductionState error: ${e}`)
+      this.setConnectionStatus(false, String(e))
     }
   }
 
@@ -162,6 +179,16 @@ class LDSperimetralInstance extends InstanceBase<ModuleConfig> {
     } catch (e) {
       this.log('debug', `pollInstanceName error: ${e}`)
     }
+  }
+
+  private updateActionsAndPresets(force = false) {
+    const plIds = this.playlists.map((p) => p.name).join('|')
+    const ovIds = this.overlays.map((o) => o.name).join('|')
+    if (!force && plIds === this.lastPlaylistIds && ovIds === this.lastOverlayIds) return
+    this.lastPlaylistIds = plIds
+    this.lastOverlayIds = ovIds
+    this.setActionDefinitions(getActions(this))
+    this.setPresetDefinitions(getPresets(this))
   }
 
   private async refreshLists() {
@@ -189,8 +216,9 @@ class LDSperimetralInstance extends InstanceBase<ModuleConfig> {
   }
 
   public async makeRequest(path: string): Promise<string | void> {
-    const url = `http://${this.config.host}:${this.config.port}${path}`
-    this.log('info', `→ ${url}`)
+    const host = (this.config.host || '').trim()
+    const url = `http://${host}:${this.config.port}${path}`
+    this.log('debug', `→ ${url}`)
 
     return new Promise((resolve) => {
       const req = http.get(url, (res) => {
@@ -207,7 +235,7 @@ class LDSperimetralInstance extends InstanceBase<ModuleConfig> {
         })
       })
       req.on('error', (err) => {
-        this.log('error', `Request error: ${err.message}`)
+        this.log('debug', `Request error: ${err.message}`)
         resolve()
       })
       req.setTimeout(3000, () => {
@@ -220,4 +248,4 @@ class LDSperimetralInstance extends InstanceBase<ModuleConfig> {
 
 export default LDSperimetralInstance
 
-runEntrypoint(LDSperimetralInstance, [])
+runEntrypoint(LDSperimetralInstance, UpgradeScripts)

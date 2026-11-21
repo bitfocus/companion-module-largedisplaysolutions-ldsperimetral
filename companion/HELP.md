@@ -16,9 +16,9 @@ https://www.largedisplaysolutions.com/fr/documentation-de-lapi-http-de-ldsperime
 
 - Dynamic actions and presets for playlists and overlay sequences
 - Real-time variables from `get_reproduction_state`
-- Automatic refresh of all variables after every command
+- Automatic refresh of variables after every command (500 ms delay)
 - Support for Stop / Pause / Resume / Play Next / Brightness / AOT overlays
-- Sequence names proposed in "Start Sequence in Playlist"
+- Start Sequence in Playlist uses a playlist dropdown and a 0-based sequence index
 
 ## Variables
 

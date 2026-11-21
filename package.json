@@ -1,18 +1,50 @@
 {
   "name": "companion-module-largedisplaysolutions-ldsperimetral",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Bitfocus Companion module for LDSperimetral v1.58.1 - Large Display Solutions",
   "main": "dist/main.js",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitfocus/companion-module-largedisplaysolutions-ldsperimetral.git"
+  },
   "dependencies": {
-    "@companion-module/base": "~1.11.0"
+    "@companion-module/base": "~1.14.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.0.0"
+    "@companion-module/tools": "^2.6.1",
+    "@types/node": "^22.19.3",
+    "eslint": "^9.39.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.7.4",
+    "rimraf": "^6.1.2",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.51.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json"
-  }
+    "postinstall": "husky",
+    "format": "prettier -w .",
+    "package": "run build && companion-module-build",
+    "build": "rimraf dist && run build:main",
+    "build:main": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "lint:raw": "eslint",
+    "lint": "run lint:raw ."
+  },
+  "engines": {
+    "node": ">=22.20",
+    "yarn": "^4"
+  },
+  "prettier": "@companion-module/tools/.prettierrc.json",
+  "lint-staged": {
+    "*.{css,json,md,scss}": [
+      "prettier --write"
+    ],
+    "*.{ts,tsx,js,jsx}": [
+      "yarn lint:raw --fix"
+    ]
+  },
+  "packageManager": "yarn@4.12.0"
 }

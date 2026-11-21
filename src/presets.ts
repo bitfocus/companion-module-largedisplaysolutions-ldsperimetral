@@ -10,6 +10,27 @@ export function getPresets(self: Self): CompanionPresetDefinitions {
   const overlays = self.getOverlayChoices()
 
   const presets: CompanionPresetDefinitions = {
+    // === Status ===
+    current_status: {
+      type: 'button',
+      category: 'Status',
+      name: 'Current Status',
+      style: {
+        text: '$(LDSperimetral:instance_name)\\n$(LDSperimetral:current_playlist)\\n$(LDSperimetral:current_sequence)',
+        size: '14',
+        color: 0xffffff,
+        bgcolor: 0x333333,
+        alignment: 'center:center',
+      },
+      steps: [{ down: [], up: [] }],
+      feedbacks: [
+        {
+          feedbackId: 'is_playing',
+          options: {},
+          style: { bgcolor: 0x00aa00, color: 0xffffff },
+        },
+      ],
+    },
     // === Transport ===
     stop: {
       type: 'button',
@@ -57,8 +78,8 @@ export function getPresets(self: Self): CompanionPresetDefinitions {
       style: {
         text: 'PAUSE\\nRESUME',
         size: '14',
-        color: 0xffffff,
-        bgcolor: 0x333333,
+        color: 0x000000,
+        bgcolor: 0xcccccc,
       },
       steps: [{ down: [{ actionId: 'pauseresume', options: {} }], up: [] }],
       feedbacks: [
@@ -95,7 +116,6 @@ export function getPresets(self: Self): CompanionPresetDefinitions {
       steps: [{ down: [{ actionId: 'quick_action_exit', options: {} }], up: [] }],
       feedbacks: [],
     },
-
     // === System ===
     ping: {
       type: 'button',
@@ -105,61 +125,33 @@ export function getPresets(self: Self): CompanionPresetDefinitions {
         text: 'PING',
         size: '18',
         color: 0xffffff,
-        bgcolor: 0x006699,
+        bgcolor: 0x444444,
       },
       steps: [{ down: [{ actionId: 'ping', options: {} }], up: [] }],
       feedbacks: [],
     },
-    brightness_100: {
+    set_brightness: {
       type: 'button',
       category: 'System',
-      name: 'Brightness 100%',
+      name: 'Set Brightness',
       style: {
         text: 'BRIGHT\\n100%',
         size: '14',
-        color: 0x000000,
-        bgcolor: 0xffffff,
+        color: 0xffffff,
+        bgcolor: 0x555555,
       },
       steps: [{ down: [{ actionId: 'set_brightness', options: { value: 100 } }], up: [] }],
       feedbacks: [],
     },
-    brightness_50: {
+    stop_aot: {
       type: 'button',
       category: 'System',
-      name: 'Brightness 50%',
-      style: {
-        text: 'BRIGHT\\n50%',
-        size: '14',
-        color: 0xffffff,
-        bgcolor: 0x666666,
-      },
-      steps: [{ down: [{ actionId: 'set_brightness', options: { value: 50 } }], up: [] }],
-      feedbacks: [],
-    },
-    brightness_0: {
-      type: 'button',
-      category: 'System',
-      name: 'Brightness 0%',
-      style: {
-        text: 'BRIGHT\\n0%',
-        size: '14',
-        color: 0xffffff,
-        bgcolor: 0x000000,
-      },
-      steps: [{ down: [{ actionId: 'set_brightness', options: { value: 0 } }], up: [] }],
-      feedbacks: [],
-    },
-
-    // === Overlays group ===
-    stop_overlay: {
-      type: 'button',
-      category: 'Overlays',
       name: 'Stop Overlay',
       style: {
-        text: 'STOP\\nOVERLAY',
+        text: 'STOP\\nOV',
         size: '14',
         color: 0xffffff,
-        bgcolor: 0xaa0000,
+        bgcolor: 0x880000,
       },
       steps: [{ down: [{ actionId: 'stop_aot', options: {} }], up: [] }],
       feedbacks: [],
@@ -167,47 +159,35 @@ export function getPresets(self: Self): CompanionPresetDefinitions {
   }
 
   // Dynamic: Start Overlay for each found sequence
-  overlays.forEach((ov) => {
-    const safeId = ov.id.replace(/[^a-zA-Z0-9_-]/g, '_')
-    presets[`ov_${safeId}`] = {
+  overlays.forEach((ov, i) => {
+    presets[`ov_${i}`] = {
       type: 'button',
       category: 'Overlays',
-      name: `Start Overlay: ${ov.label}`,
+      name: `Overlay: ${ov.label}`,
       style: {
-        text: ov.label.length > 18 ? ov.label.substring(0, 16) + '…' : ov.label,
+        text: `OV\\n${ov.label}`,
         size: '14',
         color: 0xffffff,
-        bgcolor: 0x9900cc,
+        bgcolor: 0x663399,
       },
-      steps: [
-        {
-          down: [{ actionId: 'start_aot', options: { overlay: ov.id } }],
-          up: [],
-        },
-      ],
+      steps: [{ down: [{ actionId: 'start_aot', options: { overlay: ov.id } }], up: [] }],
       feedbacks: [],
     }
   })
 
   // Dynamic: Start Playlist for each found playlist
-  playlists.forEach((pl) => {
-    const safeId = pl.id.replace(/[^a-zA-Z0-9_-]/g, '_')
-    presets[`pl_${safeId}`] = {
+  playlists.forEach((pl, i) => {
+    presets[`pl_${i}`] = {
       type: 'button',
       category: 'Playlists',
-      name: `Start Playlist: ${pl.label}`,
+      name: `Playlist: ${pl.label}`,
       style: {
-        text: pl.label.length > 18 ? pl.label.substring(0, 16) + '…' : pl.label,
+        text: `PL\\n${pl.label}`,
         size: '14',
         color: 0xffffff,
         bgcolor: 0x006600,
       },
-      steps: [
-        {
-          down: [{ actionId: 'start_playlist', options: { playlist: pl.id } }],
-          up: [],
-        },
-      ],
+      steps: [{ down: [{ actionId: 'start_playlist', options: { playlist: pl.id } }], up: [] }],
       feedbacks: [],
     }
   })

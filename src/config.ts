@@ -1,4 +1,4 @@
-import type { CompanionConfigField } from '@companion-module/base'
+import type { SomeCompanionConfigField } from '@companion-module/base'
 
 export interface ModuleConfig {
   host: string
@@ -7,7 +7,7 @@ export interface ModuleConfig {
   fastTimeUpdate: boolean
 }
 
-export function getConfigFields(): CompanionConfigField[] {
+export function getConfigFields(): SomeCompanionConfigField[] {
   return [
     {
       type: 'textinput',

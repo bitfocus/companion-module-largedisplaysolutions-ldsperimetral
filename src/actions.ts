@@ -4,14 +4,14 @@ type Choice = { id: string; label: string }
 
 type Self = {
   makeRequest: (path: string) => Promise<string | void>
-  log: (level: string, message: string) => void
+  log: (level: 'debug' | 'info' | 'warn' | 'error', message: string) => void
   getPlaylistChoices: () => Choice[]
   getOverlayChoices: () => Choice[]
   setVariableValues?: (values: Record<string, string>) => void
   refreshAfterCommand?: () => Promise<void>
 }
 
-function dropdown(id: string, label: string, choices: Choice[], fallback = '(liste vide)') {
+function dropdown(id: string, label: string, choices: Choice[], fallback = '(none found, check the connection)') {
   return {
     type: 'dropdown' as const,
     id,
@@ -25,7 +25,17 @@ export function getActions(self: Self): CompanionActionDefinitions {
   const playlists = self.getPlaylistChoices()
   const overlays = self.getOverlayChoices()
 
-  const after = async () => {
+  const after = async (raw?: string | void) => {
+    if (raw) {
+      try {
+        const json = JSON.parse(raw)
+        if (json.status !== 0) {
+          self.log('warn', `Command rejected (status ${json.status}): ${json.message || ''}`)
+        }
+      } catch {
+        // not JSON
+      }
+    }
     if (self.refreshAfterCommand) await self.refreshAfterCommand()
   }
 
@@ -34,48 +44,48 @@ export function getActions(self: Self): CompanionActionDefinitions {
       name: 'Stop',
       options: [],
       callback: async () => {
-        await self.makeRequest('/ws/remoteplayer/stop')
-        await after()
+        const r = await self.makeRequest('/ws/remoteplayer/stop')
+        await after(r)
       },
     },
     pause: {
       name: 'Pause',
       options: [],
       callback: async () => {
-        await self.makeRequest('/ws/remoteplayer/pause')
-        await after()
+        const r = await self.makeRequest('/ws/remoteplayer/pause')
+        await after(r)
       },
     },
     resume: {
       name: 'Resume',
       options: [],
       callback: async () => {
-        await self.makeRequest('/ws/remoteplayer/resume')
-        await after()
+        const r = await self.makeRequest('/ws/remoteplayer/resume')
+        await after(r)
       },
     },
     pauseresume: {
       name: 'Pause / Resume',
       options: [],
       callback: async () => {
-        await self.makeRequest('/ws/remoteplayer/pauseresume')
-        await after()
+        const r = await self.makeRequest('/ws/remoteplayer/pauseresume')
+        await after(r)
       },
     },
     play_next: {
       name: 'Play Next Sequence',
       options: [],
       callback: async () => {
-        await self.makeRequest('/ws/remoteplayer/play_next')
-        await after()
+        const r = await self.makeRequest('/ws/remoteplayer/play_next')
+        await after(r)
       },
     },
     quick_action_exit: {
       name: 'Quick Action Exit',
       options: [],
       callback: async () => {
-        await self.makeRequest('/ws/remoteplayer/quick_action_exit')
-        await after()
+        const r = await self.makeRequest('/ws/remoteplayer/quick_action_exit')
+        await after(r)
       },
     },
     start_playlist: {
@@ -83,8 +93,8 @@ export function getActions(self: Self): CompanionActionDefinitions {
       options: [dropdown('playlist', 'Playlist', playlists)],
       callback: async (action) => {
         const name = encodeURIComponent(String(action.options.playlist ?? ''))
-        if (name) await self.makeRequest(`/ws/remoteplayer/start_playlist/${name}`)
-        await after()
+        const r = name ? await self.makeRequest(`/ws/remoteplayer/start_playlist/${name}`) : undefined
+        await after(r)
       },
     },
     start_sequence: {
@@ -103,10 +113,11 @@ export function getActions(self: Self): CompanionActionDefinitions {
       callback: async (action) => {
         const playlist = encodeURIComponent(String(action.options.playlist ?? ''))
         const index = Number(action.options.index ?? 0)
-        if (playlist && !Number.isNaN(index)) {
-          await self.makeRequest(`/ws/remoteplayer/start_sequence/${playlist}/${index}`)
-        }
-        await after()
+        const r =
+          playlist && !Number.isNaN(index)
+            ? await self.makeRequest(`/ws/remoteplayer/start_sequence/${playlist}/${index}`)
+            : undefined
+        await after(r)
       },
     },
     start_aot: {
@@ -114,16 +125,16 @@ export function getActions(self: Self): CompanionActionDefinitions {
       options: [dropdown('overlay', 'Overlay Sequence', overlays)],
       callback: async (action) => {
         const name = encodeURIComponent(String(action.options.overlay ?? ''))
-        if (name) await self.makeRequest(`/ws/remoteplayer/start_aot_sequence/${name}`)
-        await after()
+        const r = name ? await self.makeRequest(`/ws/remoteplayer/start_aot_sequence/${name}`) : undefined
+        await after(r)
       },
     },
     stop_aot: {
       name: 'Stop Overlay',
       options: [],
       callback: async () => {
-        await self.makeRequest('/ws/remoteplayer/start_aot_sequence/')
-        await after()
+        const r = await self.makeRequest('/ws/remoteplayer/start_aot_sequence/')
+        await after(r)
       },
     },
     set_brightness: {
@@ -140,8 +151,8 @@ export function getActions(self: Self): CompanionActionDefinitions {
       ],
       callback: async (action) => {
         const value = action.options.value as number
-        await self.makeRequest(`/ws/remoteplayer/set_global_brightness/${value}`)
-        await after()
+        const r = await self.makeRequest(`/ws/remoteplayer/set_global_brightness/${value}`)
+        await after(r)
       },
     },
     ping: {
@@ -161,7 +172,7 @@ export function getActions(self: Self): CompanionActionDefinitions {
             self.log('warn', 'Ping: invalid JSON')
           }
         }
-        await after()
+        await after(data)
       },
     },
   }
